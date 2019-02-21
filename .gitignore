@@ -1,0 +1,12 @@
+/nbproject/
+target/
+metrics/
+*.iml
+dependency-reduced.xml
+dependency-reduced-pom.xml
+.idea/
+.DS_Store
+*.ipr
+*.iws
+*.bin
+*.bz2
