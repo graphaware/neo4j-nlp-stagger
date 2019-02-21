@@ -1,4 +1,5 @@
 package se.su.ling.stagger;
+
 import java.util.*;
 import java.io.Serializable;
 

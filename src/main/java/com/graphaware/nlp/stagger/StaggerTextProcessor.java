@@ -1,8 +1,10 @@
 package com.graphaware.nlp.stagger;
 
+import com.graphaware.nlp.annotation.NLPTextProcessor;
 import com.graphaware.nlp.domain.AnnotatedText;
 import com.graphaware.nlp.domain.Tag;
 import com.graphaware.nlp.dsl.request.PipelineSpecification;
+import com.graphaware.nlp.processor.AbstractTextProcessor;
 import com.graphaware.nlp.processor.TextProcessor;
 
 import java.io.File;
@@ -10,7 +12,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class StaggerTextProcessor implements TextProcessor {
+@NLPTextProcessor(name = "StaggerTextProcessor")
+public class StaggerTextProcessor extends AbstractTextProcessor {
 
     private StaggerProcessor staggerProcessor;
 
