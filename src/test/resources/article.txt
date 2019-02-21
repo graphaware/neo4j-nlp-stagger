@@ -1,0 +1,21 @@
+Företaget Medhelp som hanterar 1177 Vårdguiden har polisanmält tidningen Computer Sweden, skriver Dagens Nyheter. I måndags avslöjade Computer Sweden att miljontals samtal till 1177 Vårdguiden legat helt oskyddade på en webbserver.
+
+Anmälan handlar om misstänkt dataintrång, misstänkt anstiftan till dataintrång och obehörigt röjande av personuppgifter, skriver DN.
+
+Den är riktad mot bland andra tidningens chefredaktör Marcus Jerräng. Medhelps tillförordnade vd Lennart Persson bekräftar för DN att en polisanmälan har gjorts.
+
+– Den är gjord mot några personer, men det blir väl flera. Mot chefredaktören på den här tidningen och mot journalisten, säger han till DN.
+
+Bygger på vad tidningen uppgett
+Företagets affärsområdeschef Björn Arkinger säger att anmälan bygger på att Computer Sweden själva uppgett att de har ”laddat ner, tagit del av och spelat upp de här samtalsfilerna med känsliga personuppgifter”.
+
+Han säger också att det är Medhelp som är ansvariga för vad som hänt, men att det kan finnas andra som har ”ansvar i andra saker”.
+
+Computer Swedens chefredaktör Marcus Jerräng har inte velat kommentera anmälan, skriver DN.
+
+Miljontals samtal oskyddade
+Tidigare i veckan avslöjade Computer Sweden att 2,7 miljoner samtal till tjänsten 1177 Vårdguiden har legat helt oskyddade på en webbserver. Samtalen sträcker sig tillbaka till 2013 och det ska ha varit möjligt för vem som helst att ladda ner eller lyssna på samtalen.
+
+I tisdags kunde SVT Nyheter avslöja att totalt 55 samtal laddats ner från sju olika ip-adresser.
+
+Det är inte ovanligt att samtalen spelas in, men enligt patientdatalagen ska ljudfilerna behandlas med sekretess. Datainspektionen har meddelat att de ska granska ärendet.

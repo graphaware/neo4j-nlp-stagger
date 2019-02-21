@@ -6,24 +6,27 @@ import com.graphaware.nlp.dsl.request.PipelineSpecification;
 import com.graphaware.nlp.processor.TextProcessor;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class StaggerTextProcessor implements TextProcessor {
 
+    private StaggerProcessor staggerProcessor;
+
     @Override
     public void init() {
-
+        this.staggerProcessor = new StaggerProcessor();
     }
 
     @Override
     public String getAlias() {
-        return null;
+        return "stagger";
     }
 
     @Override
     public List<String> getPipelines() {
-        return null;
+        return new ArrayList<>();
     }
 
     @Override
@@ -33,12 +36,16 @@ public class StaggerTextProcessor implements TextProcessor {
 
     @Override
     public boolean checkPipeline(String name) {
-        return false;
+        return true;
     }
 
     @Override
     public AnnotatedText annotateText(String text, PipelineSpecification pipelineSpecification) {
-        return null;
+        try {
+            return staggerProcessor.tagText(text);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

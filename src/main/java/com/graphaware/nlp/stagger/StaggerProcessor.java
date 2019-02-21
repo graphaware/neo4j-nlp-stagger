@@ -1,5 +1,8 @@
 package com.graphaware.nlp.stagger;
 
+import com.graphaware.nlp.domain.AnnotatedText;
+import com.graphaware.nlp.domain.Sentence;
+import com.graphaware.nlp.domain.Tag;
 import se.su.ling.stagger.*;
 
 import java.io.*;
@@ -7,149 +10,220 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
 public class StaggerProcessor {
 
-    String lexiconFile = null;
-    String trainFile = null;
-    String devFile = null;
-    String modelFile = null;
-    ArrayList<Dictionary> posDictionaries = new ArrayList<Dictionary>();
-    ArrayList<Embedding> posEmbeddings = new ArrayList<Embedding>();
-    ArrayList<Dictionary> neDictionaries = new ArrayList<Dictionary>();
-    ArrayList<Embedding> neEmbeddings = new ArrayList<Embedding>();
-    int posBeamSize = 8;
-    int neBeamSize = 4;
-    String lang = null;
-    boolean preserve = false;
-    float embeddingSigma = 0.1f;
-    boolean plainOutput = false;
-    String fold = null;
-    int maxPosIters = 16;
-    int maxNEIters = 16;
-    boolean extendLexicon = true;
-    boolean hasNE = true;
+    private static final String BACKGROUND_SYMBOL = "O";
+    private static final String SWEDISH_LANGUAGE_CODE = "sv";
+    private static final boolean extendLexicon = true;
+    private static final boolean hasNE = true;
+
+    private final Tagger tagger;
+
+    public StaggerProcessor() {
+        try {
+            System.out.println( "Loading Stagger model ...");
+            ObjectInputStream modelReader = new ObjectInputStream(new FileInputStream(getModelPath()));
+            tagger = (Tagger) modelReader.readObject();
+            modelReader.close();
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
     private String getModelPath() throws Exception {
         File file = new File(getClass().getClassLoader().getResource("swedish.bin").toURI());
 
         return file.getPath();
     }
 
-    public void tagText(String input) throws Exception {
-        String modelFile = getModelPath();
-
-        List<String> inputFiles = Arrays.asList(input);
-
-        TaggedToken[][] inputSents = null;
-
-        ObjectInputStream modelReader = new ObjectInputStream(
-                new FileInputStream(modelFile));
-        System.err.println( "Loading Stagger model ...");
-        Tagger tagger = (Tagger) modelReader.readObject();
+    public AnnotatedText tagText(String text) throws Exception {
+        InputStream inputStream = new ByteArrayInputStream(text.getBytes());
         String lang = tagger.getTaggedData().getLanguage();
-        modelReader.close();
 
         // TODO: experimental feature, might remove later
         tagger.setExtendLexicon(extendLexicon);
-        if(!hasNE) tagger.setHasNE(false);
+        if (!hasNE) {
+            tagger.setHasNE(false);
+        }
 
-        for(String inputFile : inputFiles) {
-            if(!(inputFile.endsWith(".txt") ||
-                    inputFile.endsWith(".txt.gz")))
-            {
-                inputSents = tagger.getTaggedData().readConll(
-                        inputFile, null, true,
-                        !inputFile.endsWith(".conll"));
-                Evaluation eval = new Evaluation();
-                int count=0;
-                BufferedWriter writer = new BufferedWriter(
-                        new OutputStreamWriter(System.out, StandardCharsets.UTF_8));
-                for(TaggedToken[] sent : inputSents) {
-                    if (count % 100 == 0 )
-                        System.err.print("Tagging sentence nr: "+
-                                count + "\r" );
-                    count++;
-                    TaggedToken[] taggedSent =
-                            tagger.tagSentence(sent, true, preserve);
+        String fileID = UUID.randomUUID().toString();
+        BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
+//        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8));
+        Tokenizer tokenizer = getTokenizer(reader, lang);
+        ArrayList<Token> sent;
+        int sentIdx = 0;
+        long base = 0;
 
-                    eval.evaluate(taggedSent, sent);
-                    tagger.getTaggedData().writeConllGold(
-                            writer, taggedSent, sent, plainOutput);
+        List<ArrayList<Token>> sentences = new ArrayList<>();
+        AnnotatedText annotatedText = new AnnotatedText();
+        annotatedText.setText(text);
+
+        while( (sent = tokenizer.readSentence() ) != null ) {
+            sentences.add(sent);
+        }
+
+        int sentencesCount = 0;
+        for (ArrayList<Token> s : sentences) {
+            String sentenceString = String.join(" ", s.stream().map(t -> {return t.value;}).collect(Collectors.toList()));
+            TaggedToken[] sentence = new TaggedToken[s.size()];
+            if(tokenizer.sentID != null) {
+                if(!fileID.equals(tokenizer.sentID)) {
+                    fileID = tokenizer.sentID;
+                    sentIdx = 0;
                 }
-                writer.close();
-                System.err.println( "Tagging sentence nr: "+count);
-                System.err.println(
-                        "POS accuracy: "+eval.posAccuracy()+
-                                " ("+eval.posCorrect+" / "+
-                                eval.posTotal+")");
-                System.err.println(
-                        "NE precision: "+eval.nePrecision());
-                System.err.println(
-                        "NE recall:    "+eval.neRecall());
-                System.err.println(
-                        "NE F-score:   "+eval.neFscore());
-            } else {
-                String fileID =
-                        (new File(inputFile)).getName().split(
-                                "\\.")[0];
-                BufferedReader reader = openUTF8File(inputFile);
-                BufferedWriter writer = null;
-                if(inputFiles.size() > 1) {
-                    String outputFile = inputFile +
-                            (plainOutput? ".plain" : ".conll");
-                    writer = new BufferedWriter(
-                            new OutputStreamWriter(
-                                    new FileOutputStream(
-                                            outputFile), "UTF-8"));
-                } else {
-                    writer = new BufferedWriter(
-                            new OutputStreamWriter(System.out, "UTF-8"));
-                }
-                Tokenizer tokenizer = getTokenizer(reader, lang);
-                ArrayList<Token> sentence;
-                int sentIdx = 0;
-                long base = 0;
-                while((sentence=tokenizer.readSentence())!=null) {
-                    TaggedToken[] sent =
-                            new TaggedToken[sentence.size()];
-                    if(tokenizer.sentID != null) {
-                        if(!fileID.equals(tokenizer.sentID)) {
-                            fileID = tokenizer.sentID;
-                            sentIdx = 0;
-                        }
-                    }
-                    for(int j=0; j<sentence.size(); j++) {
-                        Token tok = sentence.get(j);
-                        String id;
-                        id = fileID + ":" + sentIdx + ":" +
-                                tok.offset;
-                        sent[j] = new TaggedToken(tok, id);
-                    }
-                    TaggedToken[] taggedSent =
-                            tagger.tagSentence(sent, true, false);
-                    tagger.getTaggedData().writeConllSentence(
-                            (writer == null)? System.out : writer,
-                            taggedSent, plainOutput);
-                    sentIdx++;
-                }
-                tokenizer.yyclose();
-                if(writer != null) writer.close();
+            }
+
+            for(int j=0; j < s.size(); j++) {
+                Token tok = s.get(j);
+                String id = fileID + ":" + sentIdx + ":" + tok.offset;
+                sentence[j] = new TaggedToken(tok, id);
+            }
+
+            TaggedToken[] taggedSent = tagger.tagSentence(sentence, true, false);
+            annotatedText.getSentences().add(processSentence(taggedSent, tagger, sentencesCount, sentenceString));
+            sentencesCount++;
+        }
+
+        tokenizer.yyclose();
+
+        return annotatedText;
+    }
+
+    private Sentence processSentence(TaggedToken[] sentence, Tagger tagger, int sentenceNumber, String sentenceString) throws Exception {
+        Sentence s = new Sentence(sentenceString, sentenceNumber);
+        TaggedToken[] taggedSentence = tagger.tagSentence(sentence, true, false);
+        List<ImprovedToken> tokens = new ArrayList<>();
+        for (TaggedToken token : taggedSentence) {
+            tokens.add(tagger.getTaggedData().getImprovedToken(token));
+        }
+        addTokensToSentence(s, tokens);
+
+        return s;
+    }
+
+    private void addTokensToSentence(Sentence s, List<ImprovedToken> tokens) {
+        TokenHolder currentToken = new TokenHolder();
+        currentToken.setPos("");
+        currentToken.setNe(BACKGROUND_SYMBOL);
+
+        for (ImprovedToken token : tokens) {
+
+            if (token.getTaggingScheme().equals(BACKGROUND_SYMBOL)) {
+                s.addTagOccurrence(token.getOffset(),token.getOffset() + token.getValue().length(), token.getValue(), getTag(token.getValue(), token.getLemma(), token.getNe(), token.getPos()));
+                continue;
+            }
+
+            if (token.getTaggingScheme().equals("B")) {
+                currentToken.updateToken(token.getLemma(), token.getValue());
+                currentToken.setBeginPosition(token.getOffset());
+                currentToken.setNe(token.getNe());
+                currentToken.setPos(token.getPos());
+
+                continue;
+            }
+
+            if (token.getTaggingScheme().equals("I") && currentToken.getNe().equals(token.getNe())) {
+                currentToken.updateToken(token.getLemma(), token.getValue());
+                Tag tag = getTag(currentToken.getOriginalValue(), currentToken.getToken(), currentToken.getNe(), currentToken.getPos());
+                s.addTagOccurrence(currentToken.getBeginPosition(), currentToken.getBeginPosition() + currentToken.getToken().length(), currentToken.getOriginalValue(), tag);
+                currentToken.reset();
             }
         }
     }
 
-    private static BufferedReader openUTF8File(String name)
-            throws IOException {
-        if(name.equals("-"))
-            return new BufferedReader(
-                    new InputStreamReader(System.in, StandardCharsets.UTF_8));
-        else if(name.endsWith(".gz"))
-            return new BufferedReader(new InputStreamReader(
-                    new GZIPInputStream(
-                            new FileInputStream(name)), StandardCharsets.UTF_8));
-        return new BufferedReader(new InputStreamReader(
-                new FileInputStream(name), StandardCharsets.UTF_8));
+    private Tag getTag(String value, String lemma, String ne, String pos) {
+        Tag tag = new Tag(lemma, SWEDISH_LANGUAGE_CODE, value);
+        tag.setPos(Arrays.asList(pos));
+        tag.setNe(Arrays.asList(ne));
+
+        return tag;
+    }
+
+    class TokenHolder {
+
+        private String ne;
+        private String pos;
+        private StringBuilder sb;
+        private StringBuilder sbOriginalValue;
+        private int beginPosition;
+        private int endPosition;
+        private List<String> tokenIds = new ArrayList<>();
+
+        public TokenHolder() {
+            reset();
+        }
+
+        public String getNe() {
+            return ne;
+        }
+
+        public String getToken() {
+            return sb.toString();
+        }
+
+        public String getOriginalValue() {
+            return sbOriginalValue.toString();
+        }
+
+        public int getBeginPosition() {
+            return beginPosition;
+        }
+
+        public int getEndPosition() {
+            return endPosition;
+        }
+
+        public void setNe(String ne) {
+            this.ne = ne;
+        }
+
+        public void updateToken(String tknStr, String originalValue) {
+            if (this.getToken().length() > 0) {
+                this.sb.append(" ");
+                this.sbOriginalValue.append(" ");
+            }
+            this.sb.append(tknStr);
+            this.sbOriginalValue.append(originalValue);
+        }
+
+        public void updateTokenAndTokenId(String tknStr, String originalValue, String tokenId) {
+            updateToken(tknStr, originalValue);
+            tokenIds.add(tokenId);
+        }
+
+        public List<String> getTokenIds() {
+            return tokenIds;
+        }
+
+        public void setBeginPosition(int beginPosition) {
+            if (this.beginPosition < 0) {
+                this.beginPosition = beginPosition;
+            }
+        }
+
+        public void setEndPosition(int endPosition) {
+            this.endPosition = endPosition;
+        }
+
+        public final void reset() {
+            sb = new StringBuilder();
+            sbOriginalValue = new StringBuilder();
+            beginPosition = -1;
+            endPosition = -1;
+            tokenIds.clear();
+        }
+
+        public String getPos() {
+            return pos;
+        }
+
+        public void setPos(String pos) {
+            this.pos = pos;
+        }
     }
 
     private static Tokenizer getTokenizer(Reader reader, String lang) {

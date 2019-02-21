@@ -1,4 +1,6 @@
 package se.su.ling.stagger;
+import com.graphaware.nlp.stagger.ImprovedToken;
+
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -147,6 +149,20 @@ public class TaggedData implements Serializable {
             ((neTag == null)? "_" : neTag) + "\t" +
             ((neType == null)? "_" : neType) + "\t" +
             ((token.id == null)? "_" : token.id);
+    }
+
+    public ImprovedToken getImprovedToken(TaggedToken token) throws TagNameException {
+        String[] pos = null;
+        String neTag = null;
+        String neType = null;
+        if(token.posTag >= 0)
+            pos = posTagSet.getTagName(token.posTag).split("\\|", 2);
+        if(token.neTag >= 0)
+            neTag = neTagSet.getTagName(token.neTag);
+        if(token.neTypeTag >= 0)
+            neType = neTypeTagSet.getTagName(token.neTypeTag);
+
+        return new ImprovedToken(token.token.value, token.lf, pos[0], (neTag != null && !neTag.equals("O")) ? neType.toUpperCase() : "O", neTag, token.token.offset);
     }
 
     /**
