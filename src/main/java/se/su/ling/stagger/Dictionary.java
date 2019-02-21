@@ -5,7 +5,7 @@ import java.io.*;
 /**
  * Dictionary containing a mapping of words to class strings.
  */
-class Dictionary implements Serializable {
+public class Dictionary implements Serializable {
     static final long serialVersionUID = -5515648578366080550L;
 
     public HashMap<String,String> map;

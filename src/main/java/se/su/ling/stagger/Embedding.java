@@ -5,7 +5,7 @@ import java.io.*;
 /**
  * Dictionary containing a mapping of words to real-valued vectors.
  */
-class Embedding implements Serializable {
+public class Embedding implements Serializable {
     static final long serialVersionUID = 1009927046375089653L;
 
     public HashMap<String,float[]> map;

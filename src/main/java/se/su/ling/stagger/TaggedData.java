@@ -1,5 +1,6 @@
 package se.su.ling.stagger;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -192,7 +193,7 @@ public class TaggedData implements Serializable {
         }
         BufferedReader reader = new BufferedReader(
             new InputStreamReader(
-                new FileInputStream(filename), "UTF-8"));
+                new FileInputStream(filename), StandardCharsets.UTF_8));
         TaggedToken[][] data = readConll(reader, fileID, extend, plain);
         reader.close();
         return data;
